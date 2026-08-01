@@ -1,0 +1,282 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Inteligencia Inmobiliaria Ecuador — Mapa</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+  html, body { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif; }
+  #layout { display: flex; height: 100vh; }
+  #sidebar {
+    width: 280px; padding: 16px; background: #17233b; color: #fff; overflow-y: auto;
+    box-sizing: border-box; flex-shrink: 0;
+  }
+  #sidebar h1 { font-size: 17px; margin: 0 0 4px; }
+  #sidebar .subtitle { font-size: 12px; color: #9fb0cc; margin-bottom: 16px; }
+  #sidebar label { display: block; font-size: 12px; color: #cbd5ea; margin: 12px 0 4px; }
+  #sidebar select, #sidebar input[type=number] {
+    width: 100%; padding: 6px; border-radius: 4px; border: 1px solid #33456b;
+    background: #0e1730; color: #fff; box-sizing: border-box;
+  }
+  #sidebar .checkbox-row { display: flex; align-items: center; gap: 6px; margin: 10px 0; }
+  #sidebar .checkbox-row input { width: auto; }
+  #sidebar .checkbox-row label { margin: 0; font-size: 13px; }
+  #stats { margin-top: 20px; font-size: 12px; color: #9fb0cc; line-height: 1.6; }
+  #legend { margin-top: 20px; font-size: 12px; color: #cbd5ea; }
+  #legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
+  #map { flex: 1; }
+  .popup-photo { width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; }
+  .popup-title { font-weight: 600; margin-bottom: 4px; }
+  .popup-row { font-size: 12px; color: #333; margin: 2px 0; }
+  .popup-flag { color: #b91c1c; font-weight: 600; }
+  .popup-link { display: inline-block; margin-top: 6px; font-size: 12px; }
+  .star-icon { font-size: 20px; text-shadow: 0 0 2px #000; }
+  .star-icon.oferta { animation: pulso 1.6s ease-in-out infinite; }
+  .dot-icon { display: block; border-radius: 50%; border: 1px solid #1c2b40; }
+  .dot-icon.oferta { animation: pulso 1.6s ease-in-out infinite; }
+  @keyframes pulso { 0%, 100% { filter: drop-shadow(0 0 2px #ffcc00); } 50% { filter: drop-shadow(0 0 8px #ffcc00); } }
+  .popup-oferta { color: #b8860b; font-weight: 700; }
+  #actualizado { margin-top: 16px; font-size: 11px; color: #7c8bab; border-top: 1px solid #26365a; padding-top: 10px; }
+</style>
+</head>
+<body>
+<div id="layout">
+  <div id="sidebar">
+    <h1>Inteligencia Inmobiliaria</h1>
+    <div class="subtitle">Ecuador — mercado y remates judiciales</div>
+
+    <label for="f-tipo">Tipo de bien</label>
+    <select id="f-tipo">
+      <option value="">Todos</option>
+      <option value="casa">Casa</option>
+      <option value="departamento">Departamento</option>
+      <option value="terreno">Terreno</option>
+    </select>
+
+    <label for="f-precio">Precio máximo (USD)</label>
+    <input type="number" id="f-precio" placeholder="Sin límite">
+
+    <label for="f-fuente">Fuente</label>
+    <select id="f-fuente"><option value="">Todas</option></select>
+
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-remates">
+      <label for="f-remates">Solo remates</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-solo-ofertas" checked>
+      <label for="f-solo-ofertas">★ Solo ofertas destacadas</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="checkbox" id="f-heatmap">
+      <label for="f-heatmap">Mapa de calor de precios</label>
+    </div>
+
+    <div id="legend">
+      <div><span class="swatch" style="background:#4a90d9"></span>Propiedad de mercado</div>
+      <div><span class="swatch" style="background:#95a5a6"></span>Remate (sin destacar)</div>
+      <div><span style="color:#ffcc00; font-weight:700;">★</span> <b>Remate destacado</b> (descuento vs. mercado ≥ umbral)</div>
+      <div><span class="swatch" style="background:#ffcc00"></span><b>Anuncio de mercado destacado</b> (mismo umbral, vs. sus comparables)</div>
+    </div>
+
+    <div id="stats">Cargando…</div>
+
+    <h3 style="font-size:13px; margin:18px 0 6px; color:#cbd5ea; border-top:1px solid #26365a; padding-top:14px;">
+      Departamento vs. Terreno por zona
+    </h3>
+    <div id="comparacion-tabla" style="font-size:11px; line-height:1.5;">Cargando…</div>
+
+    <div style="margin-top:20px; font-size:11px; color:#7c8bab;">
+      Herramienta de análisis, no asesoría de inversión. Antes de ofertar en
+      un remate, el expediente judicial debe ser revisado por un abogado.
+    </div>
+    <div id="actualizado"></div>
+  </div>
+  <div id="map"></div>
+</div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
+<script>
+const map = L.map('map').setView([-1.5, -78.5], 7);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '&copy; OpenStreetMap contributors',
+  maxZoom: 19,
+}).addTo(map);
+
+let markersLayer = L.layerGroup().addTo(map);
+let heatLayer = null;
+
+const COLOR_MERCADO = '#4a90d9';
+const COLOR_REMATE_NORMAL = '#95a5a6';
+const COLOR_OFERTA = '#ffcc00';
+
+function popupHtml(p) {
+  const lines = [];
+  lines.push(`<div class="popup-title">${p.title || (p.property_type + ' en ' + (p.canton || ''))}</div>`);
+  if (p.photo) lines.push(`<img class="popup-photo" src="${p.photo}" alt="">`);
+  lines.push(`<div class="popup-row">${p.property_type} · ${p.canton || ''}, ${p.provincia || ''}</div>`);
+  if (p.es_oferta) lines.push(`<div class="popup-row popup-oferta">★ OFERTA DESTACADA</div>`);
+  if (p.is_remate) {
+    lines.push(`<div class="popup-row">Avalúo: $${fmt(p.price_usd)}</div>`);
+    if (p.score != null) lines.push(`<div class="popup-row">Puntaje: <b>${p.score.toFixed(0)}</b>/100</div>`);
+    if (p.descuento_pct != null) lines.push(`<div class="popup-row">Descuento vs. mercado: ${(p.descuento_pct*100).toFixed(1)}%</div>`);
+    if (p.descartado) lines.push(`<div class="popup-row popup-flag">Descartado del análisis de mercado</div>`);
+    if (p.fecha_remate) lines.push(`<div class="popup-row">Fecha de remate: ${p.fecha_remate}</div>`);
+  } else {
+    lines.push(`<div class="popup-row">Precio: $${fmt(p.price_usd)}</div>`);
+    if (p.precio_m2) lines.push(`<div class="popup-row">$${fmt(p.precio_m2)}/m²</div>`);
+    if (p.score != null) lines.push(`<div class="popup-row">Puntaje: <b>${p.score.toFixed(0)}</b>/100</div>`);
+    if (p.descuento_pct != null) lines.push(`<div class="popup-row">Descuento vs. comparables: ${(p.descuento_pct*100).toFixed(1)}%</div>`);
+  }
+  if (p.red_flags && p.red_flags.length) {
+    lines.push(`<div class="popup-row popup-flag">⚠️ ${p.red_flags.join(', ')}</div>`);
+  }
+  if (p.source_url) lines.push(`<a class="popup-link" href="${p.source_url}" target="_blank" rel="noopener">Ver publicación original →</a>`);
+  return lines.join('');
+}
+
+function fmt(n) {
+  return n == null ? 'N/D' : Math.round(n).toLocaleString('es-EC');
+}
+
+let todasLasFeatures = [];
+
+function dibujar() {
+  const tipo = document.getElementById('f-tipo').value;
+  const precioMax = parseFloat(document.getElementById('f-precio').value);
+  const fuente = document.getElementById('f-fuente').value;
+  const soloRemates = document.getElementById('f-remates').checked;
+  const soloOfertas = document.getElementById('f-solo-ofertas').checked;
+
+  let features = todasLasFeatures.filter(f => {
+    const p = f.properties;
+    if (tipo && p.property_type !== tipo) return false;
+    if (fuente && p.source !== fuente) return false;
+    if (soloRemates && !p.is_remate) return false;
+    if (!isNaN(precioMax) && !(p.price_usd <= precioMax)) return false;
+    if (soloOfertas && !p.es_oferta) return false;
+    return true;
+  });
+
+  markersLayer.clearLayers();
+  if (heatLayer) { map.removeLayer(heatLayer); heatLayer = null; }
+
+  const mercado = features.filter(f => !f.properties.is_remate && f.properties.precio_m2 != null);
+  const valores = mercado.map(f => f.properties.precio_m2);
+  const max = Math.max(...valores, 1);
+
+  let nRemates = 0, nMercado = 0, nOfertas = 0;
+
+  for (const feat of features) {
+    const [lon, lat] = feat.geometry.coordinates;
+    const p = feat.properties;
+    if (p.es_oferta) nOfertas++;
+
+    if (p.is_remate) {
+      nRemates++;
+      if (p.es_oferta) {
+        const score = p.score || 0;
+        const size = 22 + Math.round((score / 100) * 14);
+        const icon = L.divIcon({
+          html: `<span class="star-icon oferta" style="color:${COLOR_OFERTA};font-size:${size}px;">★</span>`,
+          className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+        });
+        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+      } else {
+        const icon = L.divIcon({
+          html: `<span class="star-icon" style="color:${COLOR_REMATE_NORMAL};font-size:16px;">★</span>`,
+          className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+        });
+        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+      }
+    } else {
+      nMercado++;
+      if (p.es_oferta) {
+        const score = p.score || 0;
+        const size = 14 + Math.round((score / 100) * 10);
+        const icon = L.divIcon({
+          html: `<span class="dot-icon oferta" style="background:${COLOR_OFERTA};width:${size}px;height:${size}px;"></span>`,
+          className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+        });
+        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+      } else {
+        L.circleMarker([lat, lon], {
+          radius: 6, color: '#1c2b40', weight: 1, fillColor: COLOR_MERCADO, fillOpacity: 0.8,
+        }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+      }
+    }
+  }
+
+  if (document.getElementById('f-heatmap').checked && mercado.length) {
+    const pts = mercado.map(f => [f.geometry.coordinates[1], f.geometry.coordinates[0], f.properties.precio_m2]);
+    heatLayer = L.heatLayer(pts, { radius: 30, max: max }).addTo(map);
+  }
+
+  document.getElementById('stats').innerHTML =
+    `Propiedades de mercado: ${nMercado}<br>Remates activos: ${nRemates}<br>` +
+    `<b style="color:#ffcc00;">★ Ofertas destacadas: ${nOfertas}</b>`;
+}
+
+async function cargarDatos() {
+  const resp = await fetch('./data/properties.geojson');
+  const geojson = await resp.json();
+  todasLasFeatures = geojson.features;
+  dibujar();
+}
+
+async function cargarComparacionTipos() {
+  const cont = document.getElementById('comparacion-tabla');
+  try {
+    const resp = await fetch('./data/comparacion.json');
+    const data = await resp.json();
+    if (!data.length) {
+      cont.innerHTML = '<span style="color:#7c8bab;">Todavía no hay suficientes datos de mercado por zona.</span>';
+      return;
+    }
+    cont.innerHTML = data.map(r => {
+      const depto = r.departamento_precio_m2 != null
+        ? `$${Math.round(r.departamento_precio_m2)}/m² <span style="color:#7c8bab;">(${r.departamento_n})</span>`
+        : '<span style="color:#7c8bab;">sin datos</span>';
+      const terreno = r.terreno_precio_m2 != null
+        ? `$${Math.round(r.terreno_precio_m2)}/m² <span style="color:#7c8bab;">(${r.terreno_n})</span>`
+        : '<span style="color:#7c8bab;">sin datos</span>';
+      let nota = '';
+      if (r.comparacion === 'terreno_mas_barato') nota = '<div style="color:#ffcc00;">↳ terreno más barato por m²</div>';
+      else if (r.comparacion === 'departamento_mas_barato') nota = '<div style="color:#ffcc00;">↳ departamento más barato por m²</div>';
+      return `<div style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #26365a;">
+        <b>${r.canton}</b><br>Depto: ${depto}<br>Terreno: ${terreno}${nota}
+      </div>`;
+    }).join('');
+  } catch {
+    cont.innerHTML = '<span style="color:#7c8bab;">Error al cargar.</span>';
+  }
+}
+
+async function cargarFuentes() {
+  const resp = await fetch('./data/sources.json');
+  const data = await resp.json();
+  const sel = document.getElementById('f-fuente');
+  for (const [fuente, n] of Object.entries(data)) {
+    const opt = document.createElement('option');
+    opt.value = fuente;
+    opt.textContent = `${fuente} (${n})`;
+    sel.appendChild(opt);
+  }
+}
+
+for (const id of ['f-tipo', 'f-precio', 'f-fuente', 'f-remates', 'f-solo-ofertas', 'f-heatmap']) {
+  document.getElementById(id).addEventListener('change', dibujar);
+  document.getElementById(id).addEventListener('input', dibujar);
+}
+
+document.getElementById('actualizado').textContent =
+  'Datos actualizados: ' + new Date().toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' });
+
+cargarFuentes();
+cargarComparacionTipos();
+cargarDatos();
+</script>
+</body>
+</html>
