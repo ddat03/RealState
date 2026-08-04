@@ -60,13 +60,22 @@
     <label for="f-fuente">Fuente</label>
     <select id="f-fuente"><option value="">Todas</option></select>
 
+    <label>Vista</label>
     <div class="checkbox-row">
-      <input type="checkbox" id="f-remates">
-      <label for="f-remates">Solo remates</label>
+      <input type="radio" name="f-vista" id="f-vista-mercado-ofertas" value="mercado_ofertas" checked>
+      <label for="f-vista-mercado-ofertas">★ Ofertas destacadas — Mercado</label>
     </div>
     <div class="checkbox-row">
-      <input type="checkbox" id="f-solo-ofertas" checked>
-      <label for="f-solo-ofertas">★ Solo ofertas destacadas</label>
+      <input type="radio" name="f-vista" id="f-vista-remates-ofertas" value="remates_ofertas">
+      <label for="f-vista-remates-ofertas">★ Ofertas destacadas — Remates</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="radio" name="f-vista" id="f-vista-remates-todos" value="remates_todos">
+      <label for="f-vista-remates-todos">Todos los remates</label>
+    </div>
+    <div class="checkbox-row">
+      <input type="radio" name="f-vista" id="f-vista-mercado-todos" value="mercado_todos">
+      <label for="f-vista-mercado-todos">Todas las propiedades de mercado</label>
     </div>
     <div class="checkbox-row">
       <input type="checkbox" id="f-heatmap">
@@ -147,16 +156,17 @@ function dibujar() {
   const tipo = document.getElementById('f-tipo').value;
   const precioMax = parseFloat(document.getElementById('f-precio').value);
   const fuente = document.getElementById('f-fuente').value;
-  const soloRemates = document.getElementById('f-remates').checked;
-  const soloOfertas = document.getElementById('f-solo-ofertas').checked;
+  const vista = document.querySelector('input[name="f-vista"]:checked').value;
 
   let features = todasLasFeatures.filter(f => {
     const p = f.properties;
     if (tipo && p.property_type !== tipo) return false;
     if (fuente && p.source !== fuente) return false;
-    if (soloRemates && !p.is_remate) return false;
     if (!isNaN(precioMax) && !(p.price_usd <= precioMax)) return false;
-    if (soloOfertas && !p.es_oferta) return false;
+    if (vista === 'mercado_ofertas') return !p.is_remate && p.es_oferta;
+    if (vista === 'remates_ofertas') return p.is_remate && p.es_oferta;
+    if (vista === 'remates_todos') return p.is_remate;
+    if (vista === 'mercado_todos') return !p.is_remate;
     return true;
   });
 
@@ -266,9 +276,12 @@ async function cargarFuentes() {
   }
 }
 
-for (const id of ['f-tipo', 'f-precio', 'f-fuente', 'f-remates', 'f-solo-ofertas', 'f-heatmap']) {
+for (const id of ['f-tipo', 'f-precio', 'f-fuente', 'f-heatmap']) {
   document.getElementById(id).addEventListener('change', dibujar);
   document.getElementById(id).addEventListener('input', dibujar);
+}
+for (const radio of document.querySelectorAll('input[name="f-vista"]')) {
+  radio.addEventListener('change', dibujar);
 }
 
 document.getElementById('actualizado').textContent =
