@@ -155,10 +155,11 @@ function popupHtml(p) {
   if (p.red_flags && p.red_flags.length) {
     lines.push(`<div class="popup-row popup-flag">⚠️ ${p.red_flags.join(', ')}</div>`);
   }
-  if (p.is_remate) {
+  if (p.source === 'remates_judiciales') {
     // remates.funcionjudicial.gob.ec no da un link propio por remate (es
     // un buscador, no fichas con URL) — se generó una página aparte con
-    // toda la descripción encontrada.
+    // toda la descripción encontrada. Otras fuentes tratadas como remate
+    // (bancos, BIESS) sí tienen su propia URL real, se usa esa.
     lines.push(`<a class="popup-link" href="./remates/${p.id}.html">Ver ficha completa →</a>`);
   } else if (p.source_url) {
     lines.push(`<a class="popup-link" href="${p.source_url}" target="_blank" rel="noopener">Ver publicación original →</a>`);
