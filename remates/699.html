@@ -51,6 +51,12 @@ table td:first-child { color: var(--muted); width: 45%; }
 table tr:last-child td { border-bottom: none; }
 .desc { font-size: 13.5px; line-height: 1.6; white-space: pre-wrap; color: var(--ink); }
 .nota { font-size: 11.5px; color: var(--muted); margin-top: 20px; line-height: 1.5; }
+.analisis-badge { display: inline-block; padding: 4px 12px; border-radius: 14px; font-size: 13px; font-weight: 700; margin-bottom: 10px; }
+.analisis-badge.buena_oportunidad { background: #1e8e3e22; color: #2fa855; }
+.analisis-badge.dudosa { background: #8a610022; color: #d9a441; }
+.analisis-badge.mala_oportunidad { background: #b91c1c22; color: #ef6666; }
+.analisis-lista { font-size: 13px; margin: 6px 0 0; padding-left: 20px; }
+.analisis-nota-ia { font-size: 11px; color: var(--muted); margin-top: 10px; }
 </style>
 </head>
 <body>
@@ -65,6 +71,7 @@ table tr:last-child td { border-bottom: none; }
     <table><tr><td>Avalúo pericial</td><td>$52,572</td></tr><tr><td>Tipo de bien</td><td>terreno</td></tr><tr><td>Cantón / Provincia</td><td>QUITO, Pichincha</td></tr><tr><td>Señalamiento</td><td>Tercer Señalamiento</td></tr><tr><td>Fecha de remate</td><td>2026-07-31</td></tr></table>
   </div>
   <div class="card"><h2>Análisis vs. mercado</h2><p style="font-size:13.5px;color:var(--muted);">Descartado del análisis automático: sin área/precio conocido para calcular precio por m².</p></div>
+  
   
   <div class="nota">
     Esta ficha es una copia de lo publicado en el sitio oficial de remates
