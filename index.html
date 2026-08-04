@@ -7,11 +7,18 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   html, body { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif; }
-  #layout { display: flex; height: 100vh; }
+  #layout { display: flex; height: 100vh; position: relative; }
   #sidebar {
     width: 280px; padding: 16px; background: #17233b; color: #fff; overflow-y: auto;
-    box-sizing: border-box; flex-shrink: 0;
+    box-sizing: border-box; flex-shrink: 0; transition: margin-left .2s ease;
   }
+  #sidebar.oculto { margin-left: -280px; }
+  #sidebar-toggle {
+    position: absolute; top: 10px; left: 10px; z-index: 1000; width: 36px; height: 36px;
+    border-radius: 6px; border: none; background: #17233b; color: #fff; font-size: 18px;
+    cursor: pointer; box-shadow: 0 1px 4px rgba(0,0,0,.4);
+  }
+  #sidebar-toggle:hover { background: #22335a; }
   #sidebar h1 { font-size: 17px; margin: 0 0 4px; }
   #sidebar .subtitle { font-size: 12px; color: #9fb0cc; margin-bottom: 16px; }
   #sidebar label { display: block; font-size: 12px; color: #cbd5ea; margin: 12px 0 4px; }
@@ -26,6 +33,12 @@
   #legend { margin-top: 20px; font-size: 12px; color: #cbd5ea; }
   #legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
   #map { flex: 1; }
+  .section-title { font-size: 13px; margin: 18px 0 6px; color: #cbd5ea; border-top: 1px solid #26365a; padding-top: 14px; }
+  #top-ofertas { font-size: 12px; }
+  .top-item { padding: 7px 0; border-bottom: 1px solid #26365a; cursor: pointer; }
+  .top-item:hover .t-title { color: #ffcc00; }
+  .top-item .t-title { color: #fff; font-weight: 600; display: block; }
+  .top-item .t-meta { color: #9fb0cc; }
   .popup-photo { width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; }
   .popup-title { font-weight: 600; margin-bottom: 4px; }
   .popup-row { font-size: 12px; color: #333; margin: 2px 0; }
@@ -91,10 +104,8 @@
 
     <div id="stats">Cargando…</div>
 
-    <h3 style="font-size:13px; margin:18px 0 6px; color:#cbd5ea; border-top:1px solid #26365a; padding-top:14px;">
-      Departamento vs. Terreno por zona
-    </h3>
-    <div id="comparacion-tabla" style="font-size:11px; line-height:1.5;">Cargando…</div>
+    <h3 class="section-title">Top ofertas por descuento</h3>
+    <div id="top-ofertas">Cargando…</div>
 
     <div style="margin-top:20px; font-size:11px; color:#7c8bab;">
       Herramienta de análisis, no asesoría de inversión. Antes de ofertar en
@@ -102,13 +113,15 @@
     </div>
     <div id="actualizado"></div>
   </div>
+  <button id="sidebar-toggle" title="Mostrar/ocultar panel">☰</button>
   <div id="map"></div>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script>
-const map = L.map('map').setView([-1.5, -78.5], 7);
+const map = L.map('map', { zoomControl: false }).setView([-1.5, -78.5], 7);
+L.control.zoom({ position: 'topright' }).addTo(map);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
   attribution: '&copy; OpenStreetMap contributors',
   maxZoom: 19,
@@ -185,11 +198,13 @@ function dibujar() {
   const max = Math.max(...valores, 1);
 
   let nRemates = 0, nMercado = 0, nOfertas = 0;
+  markersById = {};
 
   for (const feat of features) {
     const [lon, lat] = feat.geometry.coordinates;
     const p = feat.properties;
     if (p.es_oferta) nOfertas++;
+    let marker;
 
     if (p.is_remate) {
       nRemates++;
@@ -200,13 +215,13 @@ function dibujar() {
           html: `<span class="star-icon oferta" style="color:${COLOR_OFERTA};font-size:${size}px;">★</span>`,
           className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
         });
-        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+        marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       } else {
         const icon = L.divIcon({
           html: `<span class="star-icon" style="color:${COLOR_REMATE_NORMAL};font-size:16px;">★</span>`,
           className: '', iconSize: [16, 16], iconAnchor: [8, 8],
         });
-        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+        marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       }
     } else {
       nMercado++;
@@ -217,13 +232,14 @@ function dibujar() {
           html: `<span class="dot-icon oferta" style="background:${COLOR_OFERTA};width:${size}px;height:${size}px;"></span>`,
           className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
         });
-        L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+        marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       } else {
-        L.circleMarker([lat, lon], {
+        marker = L.circleMarker([lat, lon], {
           radius: 6, color: '#1c2b40', weight: 1, fillColor: COLOR_MERCADO, fillOpacity: 0.8,
         }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       }
     }
+    markersById[p.id] = marker;
   }
 
   if (document.getElementById('f-heatmap').checked && mercado.length) {
@@ -234,6 +250,40 @@ function dibujar() {
   document.getElementById('stats').innerHTML =
     `Propiedades de mercado: ${nMercado}<br>Remates activos: ${nRemates}<br>` +
     `<b style="color:#ffcc00;">★ Ofertas destacadas: ${nOfertas}</b>`;
+
+  dibujarTopOfertas(features);
+}
+
+let markersById = {};
+
+function dibujarTopOfertas(features) {
+  const cont = document.getElementById('top-ofertas');
+  const top = features
+    .filter(f => f.properties.es_oferta && f.properties.descuento_pct > 0)
+    .sort((a, b) => b.properties.descuento_pct - a.properties.descuento_pct)
+    .slice(0, 8);
+  if (!top.length) {
+    cont.innerHTML = '<span style="color:#7c8bab;">Ninguna en esta vista.</span>';
+    return;
+  }
+  cont.innerHTML = top.map(f => {
+    const p = f.properties;
+    const descuento = (p.descuento_pct * 100).toFixed(0);
+    return `<div class="top-item" data-id="${p.id}">
+      <span class="t-title">${(p.title || p.property_type).slice(0, 42)}</span>
+      <span class="t-meta">$${fmt(p.price_usd)} · ${p.canton || ''} · <b style="color:#ffcc00;">-${descuento}%</b></span>
+    </div>`;
+  }).join('');
+  for (const el of cont.querySelectorAll('.top-item')) {
+    el.addEventListener('click', () => irAMarcador(el.dataset.id));
+  }
+}
+
+function irAMarcador(id) {
+  const marker = markersById[id];
+  if (!marker) return;
+  map.setView(marker.getLatLng(), 15);
+  marker.openPopup();
 }
 
 async function cargarDatos() {
@@ -241,34 +291,6 @@ async function cargarDatos() {
   const geojson = await resp.json();
   todasLasFeatures = geojson.features;
   dibujar();
-}
-
-async function cargarComparacionTipos() {
-  const cont = document.getElementById('comparacion-tabla');
-  try {
-    const resp = await fetch('./data/comparacion.json');
-    const data = await resp.json();
-    if (!data.length) {
-      cont.innerHTML = '<span style="color:#7c8bab;">Todavía no hay suficientes datos de mercado por zona.</span>';
-      return;
-    }
-    cont.innerHTML = data.map(r => {
-      const depto = r.departamento_precio_m2 != null
-        ? `$${Math.round(r.departamento_precio_m2)}/m² <span style="color:#7c8bab;">(${r.departamento_n})</span>`
-        : '<span style="color:#7c8bab;">sin datos</span>';
-      const terreno = r.terreno_precio_m2 != null
-        ? `$${Math.round(r.terreno_precio_m2)}/m² <span style="color:#7c8bab;">(${r.terreno_n})</span>`
-        : '<span style="color:#7c8bab;">sin datos</span>';
-      let nota = '';
-      if (r.comparacion === 'terreno_mas_barato') nota = '<div style="color:#ffcc00;">↳ terreno más barato por m²</div>';
-      else if (r.comparacion === 'departamento_mas_barato') nota = '<div style="color:#ffcc00;">↳ departamento más barato por m²</div>';
-      return `<div style="margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #26365a;">
-        <b>${r.canton}</b><br>Depto: ${depto}<br>Terreno: ${terreno}${nota}
-      </div>`;
-    }).join('');
-  } catch {
-    cont.innerHTML = '<span style="color:#7c8bab;">Error al cargar.</span>';
-  }
 }
 
 async function cargarFuentes() {
@@ -294,8 +316,16 @@ for (const radio of document.querySelectorAll('input[name="f-vista"]')) {
 document.getElementById('actualizado').textContent =
   'Datos actualizados: ' + new Date().toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' });
 
+const sidebar = document.getElementById('sidebar');
+document.getElementById('sidebar-toggle').addEventListener('click', () => {
+  sidebar.classList.toggle('oculto');
+  setTimeout(() => map.invalidateSize(), 210);
+});
+if (window.matchMedia('(max-width: 700px)').matches) {
+  sidebar.classList.add('oculto');
+}
+
 cargarFuentes();
-cargarComparacionTipos();
 cargarDatos();
 </script>
 </body>
