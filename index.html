@@ -97,6 +97,7 @@
       <div><span class="swatch" style="background:#4a90d9"></span>Remate (sin destacar) — estrella</div>
       <div><span style="color:#ffcc00; font-weight:700;">★</span> <b>Remate destacado</b> (descuento vs. mercado ≥ umbral)</div>
       <div><span class="swatch" style="background:#ffcc00"></span><b>Anuncio de mercado destacado</b> (mismo umbral, vs. sus comparables)</div>
+      <div><span class="swatch" style="background:#2ecc71"></span><b>🆕 Nueva</b> (agregada en los últimos 2 días)</div>
     </div>
 
     <div id="stats">Cargando…</div>
@@ -130,9 +131,17 @@ let heatLayer = null;
 const COLOR_MERCADO = '#4a90d9';
 const COLOR_REMATE_NORMAL = '#4a90d9'; // mismo azul que las propiedades de mercado (antes gris, se confundía)
 const COLOR_OFERTA = '#ffcc00';
+const COLOR_NUEVO = '#2ecc71';
+const DIAS_CONSIDERADO_NUEVO = 2;
+
+function esNuevo(p) {
+  if (!p.first_seen) return false;
+  return (Date.now() - new Date(p.first_seen).getTime()) < DIAS_CONSIDERADO_NUEVO * 86400000;
+}
 
 function popupHtml(p) {
   const lines = [];
+  if (esNuevo(p)) lines.push(`<div class="popup-row" style="color:#1e8e4f; font-weight:700;">🆕 Nueva (agregada hace menos de ${DIAS_CONSIDERADO_NUEVO} días)</div>`);
   lines.push(`<div class="popup-title">${p.title || (p.property_type + ' en ' + (p.canton || ''))}</div>`);
   if (p.photo) lines.push(`<img class="popup-photo" src="${p.photo}" alt="">`);
   lines.push(`<div class="popup-row">${p.property_type} · ${p.canton || ''}, ${p.provincia || ''}</div>`);
@@ -196,13 +205,15 @@ function dibujar() {
   const valores = mercado.map(f => f.properties.precio_m2);
   const max = Math.max(...valores, 1);
 
-  let nRemates = 0, nMercado = 0, nOfertas = 0;
+  let nRemates = 0, nMercado = 0, nOfertas = 0, nNuevas = 0;
   markersById = {};
 
   for (const feat of features) {
     const [lon, lat] = feat.geometry.coordinates;
     const p = feat.properties;
     if (p.es_oferta) nOfertas++;
+    const nueva = esNuevo(p);
+    if (nueva) nNuevas++;
     let marker;
 
     if (p.is_remate) {
@@ -210,14 +221,16 @@ function dibujar() {
       if (p.es_oferta) {
         const score = p.score || 0;
         const size = 22 + Math.round((score / 100) * 14);
+        const color = nueva ? COLOR_NUEVO : COLOR_OFERTA;
         const icon = L.divIcon({
-          html: `<span class="star-icon oferta" style="color:${COLOR_OFERTA};font-size:${size}px;">★</span>`,
+          html: `<span class="star-icon oferta" style="color:${color};font-size:${size}px;">★</span>`,
           className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
         });
         marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       } else {
+        const color = nueva ? COLOR_NUEVO : COLOR_REMATE_NORMAL;
         const icon = L.divIcon({
-          html: `<span class="star-icon" style="color:${COLOR_REMATE_NORMAL};font-size:22px;">★</span>`,
+          html: `<span class="star-icon" style="color:${color};font-size:22px;">★</span>`,
           className: '', iconSize: [22, 22], iconAnchor: [11, 11],
         });
         marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
@@ -227,9 +240,16 @@ function dibujar() {
       if (p.es_oferta) {
         const score = p.score || 0;
         const size = 14 + Math.round((score / 100) * 10);
+        const color = nueva ? COLOR_NUEVO : COLOR_OFERTA;
         const icon = L.divIcon({
-          html: `<span class="dot-icon oferta" style="background:${COLOR_OFERTA};width:${size}px;height:${size}px;"></span>`,
+          html: `<span class="dot-icon oferta" style="background:${color};width:${size}px;height:${size}px;"></span>`,
           className: '', iconSize: [size, size], iconAnchor: [size/2, size/2],
+        });
+        marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
+      } else if (nueva) {
+        const icon = L.divIcon({
+          html: `<span class="dot-icon" style="background:${COLOR_NUEVO};width:12px;height:12px;"></span>`,
+          className: '', iconSize: [12, 12], iconAnchor: [6, 6],
         });
         marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       } else {
@@ -248,7 +268,8 @@ function dibujar() {
 
   document.getElementById('stats').innerHTML =
     `Propiedades de mercado: ${nMercado}<br>Remates activos: ${nRemates}<br>` +
-    `<b style="color:#ffcc00;">★ Ofertas destacadas: ${nOfertas}</b>`;
+    `<b style="color:#ffcc00;">★ Ofertas destacadas: ${nOfertas}</b><br>` +
+    `<b style="color:${COLOR_NUEVO};">🆕 Nuevas (últimos ${DIAS_CONSIDERADO_NUEVO} días): ${nNuevas}</b>`;
 
   dibujarTopOfertas(features);
 }
