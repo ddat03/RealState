@@ -105,6 +105,9 @@
     <h3 class="section-title">Top ofertas por descuento</h3>
     <div id="top-ofertas">Cargando…</div>
 
+    <h3 class="section-title">Top 10 según análisis de inversión</h3>
+    <div id="top10-manual">Cargando…</div>
+
     <div style="margin-top:20px; font-size:11px; color:#7c8bab;">
       Herramienta de análisis, no asesoría de inversión. Antes de ofertar en
       un remate, el expediente judicial debe ser revisado por un abogado.
@@ -363,6 +366,25 @@ async function cargarFuentes() {
   }
 }
 
+async function cargarTop10Manual() {
+  const cont = document.getElementById('top10-manual');
+  try {
+    const resp = await fetch('./data/top10_manual.json');
+    const top = await resp.json();
+    if (!top.length) {
+      cont.innerHTML = '<span style="color:#7c8bab;">Sin datos.</span>';
+      return;
+    }
+    cont.innerHTML = top.map(p => `
+      <a class="top-item" href="./remates/${p.id}.html" style="display:block;text-decoration:none;">
+        <span class="t-title">${(p.titulo || p.external_id).slice(0, 42)}</span>
+        <span class="t-meta">${p.canton || ''} · $${fmt(p.avaluo_usd)} · <b style="color:#2ecc71;">${p.score_manual}/100</b></span>
+      </a>`).join('');
+  } catch {
+    cont.innerHTML = '<span style="color:#7c8bab;">No disponible.</span>';
+  }
+}
+
 for (const id of ['f-tipo', 'f-precio', 'f-fuente', 'f-heatmap']) {
   document.getElementById(id).addEventListener('change', dibujar);
   document.getElementById(id).addEventListener('input', dibujar);
@@ -385,6 +407,7 @@ if (window.matchMedia('(max-width: 700px)').matches) {
 
 cargarFuentes();
 cargarDatos();
+cargarTop10Manual();
 </script>
 </body>
 </html>

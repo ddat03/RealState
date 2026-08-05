@@ -1,0 +1,102 @@
+[
+ {
+  "id": 779,
+  "external_id": "EC-RJ-152929",
+  "titulo": "Terreno - EC-RJ-152929",
+  "canton": "PEDRO MONCAYO",
+  "provincia": "Pichincha",
+  "avaluo_usd": 25333.08,
+  "resumen": "Descuento enorme (92%) en terreno grande y plano; sin alertas legales.",
+  "score_manual": 85
+ },
+ {
+  "id": 2589,
+  "external_id": "EC-RJ-155447",
+  "titulo": "Terreno - EC-RJ-155447",
+  "canton": "RIOBAMBA",
+  "provincia": "Chimborazo",
+  "avaluo_usd": 22940.71,
+  "resumen": "Descuento extremo (98%); terreno muy grande (1.8 hectáreas) junto al río con acceso a riego.",
+  "score_manual": 85
+ },
+ {
+  "id": 2521,
+  "external_id": "EC-RJ-155547",
+  "titulo": "Terreno - EC-RJ-155547",
+  "canton": "COTACACHI",
+  "provincia": "Imbabura",
+  "avaluo_usd": 116481.73,
+  "resumen": "Descuento extremo (91%); terreno muy grande (2.8 hectáreas) con 3 bloques constructivos de acabados económicos.",
+  "score_manual": 85
+ },
+ {
+  "id": 2211,
+  "external_id": "EC-RJ-155073",
+  "titulo": "Casa - EC-RJ-155073",
+  "canton": "CUENCA",
+  "provincia": "Azuay",
+  "avaluo_usd": 70217.76,
+  "resumen": "Descuento muy alto (71%); vivienda de solo ~3 años en condominio, con buenos acabados.",
+  "score_manual": 82
+ },
+ {
+  "id": 2473,
+  "external_id": "EC-RJ-155404",
+  "titulo": "Terreno - EC-RJ-155404",
+  "canton": "BALZAR",
+  "provincia": "Guayas",
+  "avaluo_usd": 62415.0,
+  "resumen": "Descuento extremo (96%); terreno grande (1 hectárea) con cerramiento parcial.",
+  "score_manual": 82
+ },
+ {
+  "id": 734,
+  "external_id": "EC-RJ-155808",
+  "titulo": "Casa - EC-RJ-155808",
+  "canton": "QUITO",
+  "provincia": "Pichincha",
+  "avaluo_usd": 83304.73,
+  "resumen": "Descuento extremo (87%); es un edificio de varios departamentos (área de construcción mucho mayor al terreno, típico de un edificio de varios pisos) — buen potencial de renta.",
+  "score_manual": 82
+ },
+ {
+  "id": 2143,
+  "external_id": "EC-RJ-153657",
+  "titulo": "Casa - EC-RJ-153657",
+  "canton": "AMBATO",
+  "provincia": "Tungurahua",
+  "avaluo_usd": 7099.03,
+  "resumen": "Descuento muy alto (84%) en casa rural con terreno grande y servicios básicos.",
+  "score_manual": 80
+ },
+ {
+  "id": 2356,
+  "external_id": "EC-RJ-153881",
+  "titulo": "Terreno - EC-RJ-153881",
+  "canton": "SALCEDO",
+  "provincia": "Cotopaxi",
+  "avaluo_usd": 9889.17,
+  "resumen": "Descuento extremo (95%) en terreno grande; conviene verificar por qué es tan alto antes de ofertar.",
+  "score_manual": 80
+ },
+ {
+  "id": 2584,
+  "external_id": "EC-RJ-155198",
+  "titulo": "Casa - EC-RJ-155198",
+  "canton": "IBARRA",
+  "provincia": "Imbabura",
+  "avaluo_usd": 39240.83,
+  "resumen": "Descuento muy alto (76%); cerca de universidad y equipamiento recreativo, dos bloques de construcción.",
+  "score_manual": 80
+ },
+ {
+  "id": 2588,
+  "external_id": "EC-RJ-155218",
+  "titulo": "Terreno - EC-RJ-155218",
+  "canton": "CHAMBO",
+  "provincia": "Chimborazo",
+  "avaluo_usd": 16963.85,
+  "resumen": "Descuento muy alto (86%); terreno agrícola con acceso a acequia de riego.",
+  "score_manual": 80
+ }
+]
