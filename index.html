@@ -139,6 +139,9 @@ function popupHtml(p) {
   lines.push(`<div class="popup-title">${p.title || (p.property_type + ' en ' + (p.canton || ''))}</div>`);
   if (p.photo) lines.push(`<img class="popup-photo" src="${p.photo}" alt="">`);
   lines.push(`<div class="popup-row">${p.property_type} · ${p.canton || ''}, ${p.provincia || ''}</div>`);
+  if (p.geocode_precision === 'canton') {
+    lines.push(`<div class="popup-row" style="color:#8a6100;">📍 Ubicación aproximada (solo a nivel cantón, no la dirección exacta)</div>`);
+  }
   if (p.es_oferta) lines.push(`<div class="popup-row popup-oferta">★ OFERTA DESTACADA</div>`);
   if (p.is_remate) {
     lines.push(`<div class="popup-row">Avalúo: $${fmt(p.price_usd)}</div>`);
@@ -287,10 +290,48 @@ function irAMarcador(id) {
   marker.openPopup();
 }
 
+// Geocodificar solo a nivel cantón (fallback cuando no se encuentra la
+// dirección exacta) hace que TODAS las propiedades de un mismo cantón
+// caigan en el mismo punto — quedan apiladas exactamente una sobre otra en
+// el mapa, así que solo la de encima es visible/clickeable, el resto
+// queda escondido sin ningún aviso (928 propiedades activas afectadas en
+// todo el sistema, hasta 75 apiladas en un solo punto en Quito). Se
+// esparcen en anillos alrededor del punto original — la posición exacta
+// ya era aproximada de por sí a esa escala, así que un desplazamiento de
+// ~100-300m no pierde precisión real.
+function repartirSolapados(features) {
+  const grupos = new Map();
+  for (const f of features) {
+    const [lon, lat] = f.geometry.coordinates;
+    const key = lon.toFixed(4) + ',' + lat.toFixed(4);
+    if (!grupos.has(key)) grupos.set(key, []);
+    grupos.get(key).push(f);
+  }
+  const POR_ANILLO = 10;
+  const PASO_RADIO_GRADOS = 0.0009; // ~100m por anillo
+  for (const grupo of grupos.values()) {
+    if (grupo.length <= 1) continue;
+    const [lonBase, latBase] = grupo[0].geometry.coordinates;
+    const corrección = Math.cos(latBase * Math.PI / 180) || 1;
+    grupo.forEach((f, i) => {
+      const anillo = Math.floor(i / POR_ANILLO) + 1;
+      const inicioAnillo = (anillo - 1) * POR_ANILLO;
+      const nEnAnillo = Math.min(POR_ANILLO, grupo.length - inicioAnillo);
+      const angulo = (2 * Math.PI * (i - inicioAnillo)) / nEnAnillo;
+      const radio = PASO_RADIO_GRADOS * anillo;
+      f.geometry.coordinates = [
+        lonBase + (radio * Math.cos(angulo)) / corrección,
+        latBase + radio * Math.sin(angulo),
+      ];
+    });
+  }
+}
+
 async function cargarDatos() {
   const resp = await fetch('./data/properties.geojson');
   const geojson = await resp.json();
   todasLasFeatures = geojson.features;
+  repartirSolapados(todasLasFeatures);
   dibujar();
 }
 
