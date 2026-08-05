@@ -80,20 +80,12 @@
 
     <label>Vista</label>
     <div class="checkbox-row">
-      <input type="radio" name="f-vista" id="f-vista-mercado-ofertas" value="mercado_ofertas" checked>
-      <label for="f-vista-mercado-ofertas">★ Ofertas destacadas — Mercado</label>
-    </div>
-    <div class="checkbox-row">
-      <input type="radio" name="f-vista" id="f-vista-remates-ofertas" value="remates_ofertas">
-      <label for="f-vista-remates-ofertas">★ Ofertas destacadas — Remates</label>
-    </div>
-    <div class="checkbox-row">
-      <input type="radio" name="f-vista" id="f-vista-remates-todos" value="remates_todos">
-      <label for="f-vista-remates-todos">Todos los remates</label>
+      <input type="radio" name="f-vista" id="f-vista-remates-todos" value="remates_todos" checked>
+      <label for="f-vista-remates-todos">Todos los remates judiciales</label>
     </div>
     <div class="checkbox-row">
       <input type="radio" name="f-vista" id="f-vista-mercado-todos" value="mercado_todos">
-      <label for="f-vista-mercado-todos">Todas las propiedades de mercado</label>
+      <label for="f-vista-mercado-todos">Todas las propiedades de personas naturales</label>
     </div>
     <div class="checkbox-row">
       <input type="checkbox" id="f-heatmap">
@@ -192,8 +184,6 @@ function dibujar() {
     if (tipo && p.property_type !== tipo) return false;
     if (fuente && p.source !== fuente) return false;
     if (!isNaN(precioMax) && !(p.price_usd <= precioMax)) return false;
-    if (vista === 'mercado_ofertas') return !p.is_remate && p.es_oferta;
-    if (vista === 'remates_ofertas') return p.is_remate && p.es_oferta;
     if (vista === 'remates_todos') return p.is_remate;
     if (vista === 'mercado_todos') return !p.is_remate;
     return true;
