@@ -29,6 +29,8 @@
   #sidebar .checkbox-row { display: flex; align-items: center; gap: 6px; margin: 10px 0; }
   #sidebar .checkbox-row input { width: auto; }
   #sidebar .checkbox-row label { margin: 0; font-size: 13px; }
+  #sidebar .checkbox-row.sub { margin: 6px 0 6px 22px; }
+  #sidebar .checkbox-row.sub label { font-size: 12px; color: #9fb0cc; }
   #stats { margin-top: 20px; font-size: 12px; color: #9fb0cc; line-height: 1.6; }
   #legend { margin-top: 20px; font-size: 12px; color: #cbd5ea; }
   #legend .swatch { display: inline-block; width: 12px; height: 12px; border-radius: 50%; margin-right: 6px; vertical-align: middle; }
@@ -82,6 +84,22 @@
     <div class="checkbox-row">
       <input type="radio" name="f-vista" id="f-vista-remates-todos" value="remates_todos" checked>
       <label for="f-vista-remates-todos">Todos los remates judiciales</label>
+    </div>
+    <div class="checkbox-row sub">
+      <input type="radio" name="f-senalamiento" id="f-senalamiento-todos" value="" checked>
+      <label for="f-senalamiento-todos">Todos</label>
+    </div>
+    <div class="checkbox-row sub">
+      <input type="radio" name="f-senalamiento" id="f-senalamiento-primer" value="Primer Señalamiento">
+      <label for="f-senalamiento-primer">Primer señalamiento</label>
+    </div>
+    <div class="checkbox-row sub">
+      <input type="radio" name="f-senalamiento" id="f-senalamiento-segundo" value="Segundo Señalamiento">
+      <label for="f-senalamiento-segundo">Segundo señalamiento</label>
+    </div>
+    <div class="checkbox-row sub">
+      <input type="radio" name="f-senalamiento" id="f-senalamiento-tercer" value="Tercer Señalamiento">
+      <label for="f-senalamiento-tercer">Tercer señalamiento</label>
     </div>
     <div class="checkbox-row">
       <input type="radio" name="f-vista" id="f-vista-mercado-todos" value="mercado_todos">
@@ -190,12 +208,14 @@ function dibujar() {
   const precioMax = parseFloat(document.getElementById('f-precio').value);
   const fuente = document.getElementById('f-fuente').value;
   const vista = document.querySelector('input[name="f-vista"]:checked').value;
+  const senalamiento = document.querySelector('input[name="f-senalamiento"]:checked').value;
 
   let features = todasLasFeatures.filter(f => {
     const p = f.properties;
     if (tipo && p.property_type !== tipo) return false;
     if (fuente && p.source !== fuente) return false;
     if (!isNaN(precioMax) && !(p.price_usd <= precioMax)) return false;
+    if (senalamiento && p.senalamiento !== senalamiento) return false;
     if (vista === 'remates_todos') return p.is_remate;
     if (vista === 'mercado_todos') return !p.is_remate;
     return true;
@@ -389,7 +409,7 @@ for (const id of ['f-tipo', 'f-precio', 'f-fuente', 'f-heatmap']) {
   document.getElementById(id).addEventListener('change', dibujar);
   document.getElementById(id).addEventListener('input', dibujar);
 }
-for (const radio of document.querySelectorAll('input[name="f-vista"]')) {
+for (const radio of document.querySelectorAll('input[name="f-vista"], input[name="f-senalamiento"]')) {
   radio.addEventListener('change', dibujar);
 }
 
