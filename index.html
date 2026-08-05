@@ -44,7 +44,12 @@
   .popup-row { font-size: 12px; color: #333; margin: 2px 0; }
   .popup-flag { color: #b91c1c; font-weight: 600; }
   .popup-link { display: inline-block; margin-top: 6px; font-size: 12px; }
-  .star-icon { font-size: 20px; text-shadow: 0 0 2px #000; }
+  .star-icon {
+    font-size: 20px;
+    -webkit-text-stroke: 1.5px #000;
+    text-shadow: 0 0 2px #000, 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000,
+      1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000;
+  }
   .star-icon.oferta { animation: pulso 1.6s ease-in-out infinite; }
   .dot-icon { display: block; border-radius: 50%; border: 1px solid #1c2b40; }
   .dot-icon.oferta { animation: pulso 1.6s ease-in-out infinite; }
@@ -222,8 +227,8 @@ function dibujar() {
         marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       } else {
         const icon = L.divIcon({
-          html: `<span class="star-icon" style="color:${COLOR_REMATE_NORMAL};font-size:16px;">★</span>`,
-          className: '', iconSize: [16, 16], iconAnchor: [8, 8],
+          html: `<span class="star-icon" style="color:${COLOR_REMATE_NORMAL};font-size:22px;">★</span>`,
+          className: '', iconSize: [22, 22], iconAnchor: [11, 11],
         });
         marker = L.marker([lat, lon], { icon }).bindPopup(() => popupHtml(p)).addTo(markersLayer);
       }
