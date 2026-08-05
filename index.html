@@ -97,7 +97,7 @@
 
     <div id="legend">
       <div><span class="swatch" style="background:#4a90d9"></span>Propiedad de mercado</div>
-      <div><span class="swatch" style="background:#95a5a6"></span>Remate (sin destacar)</div>
+      <div><span class="swatch" style="background:#4a90d9"></span>Remate (sin destacar) — estrella</div>
       <div><span style="color:#ffcc00; font-weight:700;">★</span> <b>Remate destacado</b> (descuento vs. mercado ≥ umbral)</div>
       <div><span class="swatch" style="background:#ffcc00"></span><b>Anuncio de mercado destacado</b> (mismo umbral, vs. sus comparables)</div>
     </div>
@@ -131,7 +131,7 @@ let markersLayer = L.layerGroup().addTo(map);
 let heatLayer = null;
 
 const COLOR_MERCADO = '#4a90d9';
-const COLOR_REMATE_NORMAL = '#95a5a6';
+const COLOR_REMATE_NORMAL = '#4a90d9'; // mismo azul que las propiedades de mercado (antes gris, se confundía)
 const COLOR_OFERTA = '#ffcc00';
 
 function popupHtml(p) {
