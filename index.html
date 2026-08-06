@@ -3,13 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Inteligencia Inmobiliaria Ecuador — Mapa</title>
+<title>Proyecto inmobiliario para Violeta — Mapa</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
   html, body { margin: 0; height: 100%; font-family: system-ui, Arial, sans-serif; }
   #layout { display: flex; height: 100vh; position: relative; }
   #sidebar {
-    width: 280px; padding: 16px; background: #17233b; color: #fff; overflow-y: auto;
+    width: 280px; padding: 54px 16px 16px; background: #17233b; color: #fff; overflow-y: auto;
     box-sizing: border-box; flex-shrink: 0; transition: margin-left .2s ease;
   }
   #sidebar.oculto { margin-left: -280px; }
@@ -41,11 +41,32 @@
   .top-item:hover .t-title { color: #ffcc00; }
   .top-item .t-title { color: #fff; font-weight: 600; display: block; }
   .top-item .t-meta { color: #9fb0cc; }
-  .popup-photo { width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; }
+  .popup-photo-wrap { position: relative; }
+  .popup-photo { width: 100%; max-height: 120px; object-fit: cover; border-radius: 4px; margin-bottom: 6px; display: block; }
   .popup-title { font-weight: 600; margin-bottom: 4px; }
   .popup-row { font-size: 12px; color: #333; margin: 2px 0; }
   .popup-flag { color: #b91c1c; font-weight: 600; }
   .popup-link { display: inline-block; margin-top: 6px; font-size: 12px; }
+  .fav-heart {
+    position: absolute; top: 6px; right: 6px; font-size: 22px; line-height: 1; cursor: pointer;
+    color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.7), 0 0 4px rgba(0,0,0,.5); user-select: none;
+  }
+  .fav-heart.activo { color: #e0473e; }
+  .fav-heart-inline { font-size: 15px; cursor: pointer; margin-left: 6px; color: #b0b0b0; user-select: none; vertical-align: middle; }
+  .fav-heart-inline.activo { color: #e0473e; }
+  #btn-favoritos {
+    display: flex; align-items: center; justify-content: space-between; width: 100%; margin: 4px 0 0;
+    padding: 8px 10px; background: #22335a; color: #fff; border: none; border-radius: 6px;
+    font-size: 13px; cursor: pointer;
+  }
+  #btn-favoritos:hover { background: #2b4070; }
+  #btn-favoritos .car { color: #e0473e; }
+  #favoritos-panel { font-size: 12px; margin-top: 6px; }
+  #favoritos-panel.fav-oculto { display: none; }
+  .fav-item { padding: 7px 0; border-bottom: 1px solid #26365a; cursor: pointer; }
+  .fav-item:hover .t-title { color: #ffcc00; }
+  .fav-item .t-title { color: #fff; font-weight: 600; display: block; }
+  .fav-item .t-meta { color: #9fb0cc; }
   .star-icon {
     font-size: 20px;
     -webkit-text-stroke: 1.5px #000;
@@ -63,8 +84,11 @@
 <body>
 <div id="layout">
   <div id="sidebar">
-    <h1>Inteligencia Inmobiliaria</h1>
+    <h1>Proyecto inmobiliario para Violeta</h1>
     <div class="subtitle">Ecuador — mercado y remates judiciales</div>
+
+    <button id="btn-favoritos"><span>♥ <span id="fav-titulo">Favoritos</span></span><span id="fav-count">0</span></button>
+    <div id="favoritos-panel" class="fav-oculto">Sin favoritos todavía.</div>
 
     <label for="f-tipo">Tipo de bien</label>
     <select id="f-tipo">
@@ -160,11 +184,70 @@ function esNuevo(p) {
   return (Date.now() - new Date(p.first_seen).getTime()) < DIAS_CONSIDERADO_NUEVO * 86400000;
 }
 
+// --- Favoritos: guardados en el navegador de quien mira el mapa (no en el
+// servidor — este sitio es estático), así cada persona tiene su propia
+// lista sin necesidad de cuenta ni backend.
+const FAV_KEY = 'inmuebles_favoritos_v1';
+
+function cargarFavoritos() {
+  try { return JSON.parse(localStorage.getItem(FAV_KEY)) || []; } catch { return []; }
+}
+function guardarFavoritos(arr) {
+  localStorage.setItem(FAV_KEY, JSON.stringify(arr));
+}
+function esFavorito(id) {
+  return cargarFavoritos().includes(id);
+}
+function toggleFavorito(id, ev) {
+  if (ev) ev.stopPropagation();
+  const favs = cargarFavoritos();
+  const idx = favs.indexOf(id);
+  const activo = idx === -1;
+  if (activo) favs.push(id); else favs.splice(idx, 1);
+  guardarFavoritos(favs);
+  for (const el of document.querySelectorAll(`.fav-heart[data-id="${id}"], .fav-heart-inline[data-id="${id}"]`)) {
+    el.classList.toggle('activo', activo);
+    el.textContent = activo ? '♥' : '♡';
+  }
+  renderFavoritos();
+}
+
+function renderFavoritos() {
+  const favs = cargarFavoritos();
+  document.getElementById('fav-count').textContent = favs.length;
+  const panel = document.getElementById('favoritos-panel');
+  if (!favs.length) {
+    panel.innerHTML = 'Sin favoritos todavía. Toca el ♡ de una propiedad para guardarla aquí.';
+    return;
+  }
+  const items = favs
+    .map(id => todasLasFeatures.find(f => f.properties.id === id))
+    .filter(Boolean);
+  if (!items.length) {
+    panel.innerHTML = 'Cargando tus favoritos…';
+    return;
+  }
+  panel.innerHTML = items.map(f => {
+    const p = f.properties;
+    return `<div class="fav-item" data-id="${p.id}">
+      <span class="t-title">${(p.title || p.property_type).slice(0, 42)}</span>
+      <span class="t-meta">$${fmt(p.price_usd)} · ${p.canton || ''}</span>
+    </div>`;
+  }).join('');
+  for (const el of panel.querySelectorAll('.fav-item')) {
+    el.addEventListener('click', () => irAMarcador(el.dataset.id));
+  }
+}
+
 function popupHtml(p) {
   const lines = [];
   if (esNuevo(p)) lines.push(`<div class="popup-row" style="color:#1e8e4f; font-weight:700;">🆕 Nueva (agregada hace menos de ${DIAS_CONSIDERADO_NUEVO} días)</div>`);
-  lines.push(`<div class="popup-title">${p.title || (p.property_type + ' en ' + (p.canton || ''))}</div>`);
-  if (p.photo) lines.push(`<img class="popup-photo" src="${p.photo}" alt="">`);
+  const favActivo = esFavorito(p.id);
+  lines.push(`<div class="popup-title">${p.title || (p.property_type + ' en ' + (p.canton || ''))}${p.photo ? '' : ` <span class="fav-heart-inline${favActivo ? ' activo' : ''}" data-id="${p.id}" onclick="toggleFavorito(${p.id}, event)">${favActivo ? '♥' : '♡'}</span>`}</div>`);
+  if (p.photo) {
+    lines.push(`<div class="popup-photo-wrap"><img class="popup-photo" src="${p.photo}" alt="">` +
+      `<span class="fav-heart${favActivo ? ' activo' : ''}" data-id="${p.id}" onclick="toggleFavorito(${p.id}, event)">${favActivo ? '♥' : '♡'}</span></div>`);
+  }
   lines.push(`<div class="popup-row">${p.property_type} · ${p.canton || ''}, ${p.provincia || ''}</div>`);
   if (p.geocode_precision === 'canton') {
     lines.push(`<div class="popup-row" style="color:#8a6100;">📍 Ubicación aproximada (solo a nivel cantón, no la dirección exacta)</div>`);
@@ -425,9 +508,14 @@ if (window.matchMedia('(max-width: 700px)').matches) {
   sidebar.classList.add('oculto');
 }
 
+document.getElementById('btn-favoritos').addEventListener('click', () => {
+  document.getElementById('favoritos-panel').classList.toggle('fav-oculto');
+});
+
 cargarFuentes();
-cargarDatos();
+cargarDatos().then(renderFavoritos);
 cargarTop10Manual();
+renderFavoritos();
 </script>
 </body>
 </html>
