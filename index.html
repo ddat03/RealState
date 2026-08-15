@@ -78,7 +78,9 @@
   .dot-icon.oferta { animation: pulso 1.6s ease-in-out infinite; }
   @keyframes pulso { 0%, 100% { filter: drop-shadow(0 0 2px #ffcc00); } 50% { filter: drop-shadow(0 0 8px #ffcc00); } }
   .popup-oferta { color: #b8860b; font-weight: 700; }
-  #actualizado { margin-top: 16px; font-size: 11px; color: #7c8bab; border-top: 1px solid #26365a; padding-top: 10px; }
+  #actualizado { margin: 2px 0 12px; font-size: 11.5px; color: #9fb0cc; }
+  #actualizado b { color: #cbd5ea; }
+  #actualizado.desactualizado { color: #e0b04a; }
 </style>
 </head>
 <body>
@@ -86,6 +88,7 @@
   <div id="sidebar">
     <h1>Proyecto inmobiliario para Violeta</h1>
     <div class="subtitle">Ecuador — mercado y remates judiciales</div>
+    <div id="actualizado">Consultando última actualización…</div>
 
     <button id="btn-favoritos"><span>♥ <span id="fav-titulo">Favoritos</span></span><span id="fav-count">0</span></button>
     <div id="favoritos-panel" class="fav-oculto">Sin favoritos todavía.</div>
@@ -154,7 +157,6 @@
       Herramienta de análisis, no asesoría de inversión. Antes de ofertar en
       un remate, el expediente judicial debe ser revisado por un abogado.
     </div>
-    <div id="actualizado"></div>
   </div>
   <button id="sidebar-toggle" title="Mostrar/ocultar panel">☰</button>
   <div id="map"></div>
@@ -496,8 +498,27 @@ for (const radio of document.querySelectorAll('input[name="f-vista"], input[name
   radio.addEventListener('change', dibujar);
 }
 
-document.getElementById('actualizado').textContent =
-  'Datos actualizados: ' + new Date().toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' });
+async function cargarUltimaActualizacion() {
+  const el = document.getElementById('actualizado');
+  try {
+    const resp = await fetch('./data/actualizado.json');
+    const data = await resp.json();
+    if (!data.ultima_actualizacion) {
+      el.textContent = 'Sin registro de actualizaciones todavía.';
+      return;
+    }
+    const fecha = new Date(data.ultima_actualizacion);
+    const horas = (Date.now() - fecha.getTime()) / 3600000;
+    el.innerHTML = 'Datos actualizados: <b>' + fecha.toLocaleString('es-EC', { dateStyle: 'medium', timeStyle: 'short' }) + '</b>';
+    if (horas > 26) {
+      el.classList.add('desactualizado');
+      el.innerHTML += ' ⚠ hace más de un día';
+    }
+  } catch {
+    el.textContent = 'No se pudo consultar la última actualización.';
+  }
+}
+cargarUltimaActualizacion();
 
 const sidebar = document.getElementById('sidebar');
 document.getElementById('sidebar-toggle').addEventListener('click', () => {
